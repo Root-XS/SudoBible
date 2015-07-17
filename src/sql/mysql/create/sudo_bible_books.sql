@@ -1,0 +1,7 @@
+CREATE TABLE IF NOT EXISTS `sudo_bible_books` (
+	`id` TINYINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+	`name` VARCHAR(16) NOT NULL,
+	`old_testament` BOOL DEFAULT 1,
+	`new_testament` BOOL DEFAULT 0
+	UNIQUE KEY (`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;

@@ -1,0 +1,22 @@
+{
+	"name": "rootxs/sudo-bible",
+	"type": "library",
+	"description": "Open source Bible API.",
+	"keywords": ["bible","scripture","verse","topic","api"],
+	"homepage": "https://github.com/root-xs/sudo-bible",
+	"license": "MIT",
+	"authors": [
+		{
+			"name": "Mark Potter",
+			"homepage": "https://github.com/mopo922"
+		}
+	],
+	"require": {
+		"php": ">=5.4"
+	},
+	"autoload": {
+		"psr-4" : {
+			"RootXS\\SudoBible" : "src"
+		}
+	}
+}
