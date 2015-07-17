@@ -34,6 +34,13 @@ class SudoBible {
 	protected $dbType = 'mysql';
 
 	/**
+	 * Translation.
+	 *
+	 * @var $iTranslation
+	 */
+	protected $iTranslation = 1;
+
+	/**
 	 * Init Sudo Bible.
 	 *
 	 * @param array $aOptions
@@ -41,6 +48,8 @@ class SudoBible {
 	public function __construct(array $aOptions)
 	{
 		$this->dbConnect($Options);
+		if (isset($aOptions['translation']))
+			$this->setTranslation($aOptions['translation']);
 	}
 
 	/**
@@ -61,6 +70,32 @@ class SudoBible {
 		);
 		if ($this->db->connect_errno)
 			throw new Exception('DB connectin failed - ' . $mysqli->connect_error);
+	}
+
+	/**
+	 * Set the translation preference.
+	 *
+	 * @param int|string $mTranslation
+	 */
+	public function setTranslation($mTranslation)
+	{
+		if (is_numeric($mTranslation)) {
+			$this->iTranslation = $mTranslation;
+		} elseif (is_string($mTranslation)) {
+			// query the db to get the ID
+			$stmt = $this->db->prepare('SELECT `id` FROM `sudo_bible_translations` WHERE `name` LIKE ?');
+			$stmt->bind_param('s', $mTranslation);
+			$stmt->execute();
+			$stmt->bind_result($iTranslation);
+			$stmt->fetch();
+			$stmt->close();
+
+			// check result
+			if (is_numeric($iTranslation))
+				$this->iTranslation = $iTranslation;
+			else
+				throw new Exception('Invalid translation "' .  $mTranslation . '" given.');
+		}
 	}
 
 	/**
@@ -106,6 +141,30 @@ class SudoBible {
 				}
 			}
 		}
+	}
+
+	/**
+	 *
+	 */
+	public function verse()
+	{
+
+	}
+
+	/**
+	 *
+	 */
+	public function topic()
+	{
+
+	}
+
+	/**
+	 *
+	 */
+	public function chapter()
+	{
+
 	}
 
 }
