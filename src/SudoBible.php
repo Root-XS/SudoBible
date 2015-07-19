@@ -95,11 +95,19 @@ class SudoBible {
 	}
 
 	/**
+	 * Drop tables.
+	 */
+	public function uninstall()
+	{
+		$this->queryFiles('drop');
+	}
+
+	/**
 	 * Drop & re-create tables, then insert data.
 	 */
 	public function reinstall()
 	{
-		$this->queryFiles('drop');
+		$this->uninstall();
 		$this->install();
 	}
 
@@ -167,7 +175,7 @@ class SudoBible {
 		if (is_string($mTopic))
 			$mTopic = $this->getIdFor('topic', $mTopic);
 
-		$q = 'SELECT tv.*, verses.`text`, books.`name` AS book_name, books.`ot`, books.`nt`'
+		$q = 'SELECT tv.*, verses.`text`, books.`name` AS book_name, books.`abbr` AS book_abbr, books.`ot`, books.`nt`'
 			. ' FROM `sudo_bible_topic_verses` AS tv'
 			. ' LEFT JOIN `sudo_bible_verses` AS verses ON verses.`book_id` = tv.`book_id`'
 				. ' AND verses.`chapter` = tv.`chapter` AND verses.`verse` = tv.`verse`'
@@ -217,7 +225,7 @@ class SudoBible {
 		}
 
 		// Begin query
-		$q = 'SELECT verses.*, books.`name` AS book_name, books.`ot`, books.`nt`'
+		$q = 'SELECT verses.*, books.`name` AS book_name, books.`abbr` AS book_abbr, books.`ot`, books.`nt`'
 			. ' FROM `sudo_bible_verses` AS verses'
 			. ' LEFT JOIN `sudo_bible_books` AS books ON books.`id` = verses.`book_id`'
 			. ' WHERE `translation_id` = ?';
