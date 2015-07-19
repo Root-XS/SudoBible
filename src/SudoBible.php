@@ -304,11 +304,11 @@ class SudoBible {
 	 * so we can throw a useful error.
 	 *
 	 * @param string $strType translation, book, or topic
-	 * @param string $strName Name of the translation or book.
+	 * @param string $strNameAbbr Name of the translation or book.
 	 * @throws Exception
 	 * @return int
 	 */
-	protected function getIdFor($strType, $strName)
+	protected function getIdFor($strType, $strNameAbbr)
 	{
 		// Validate input
 		if (!in_array($strType, ['book', 'translation', 'topic']))
@@ -316,15 +316,18 @@ class SudoBible {
 
 		// Query the db to get the ID
 		$strTableName = 'sudo_bible_' . $strType . 's';
-		$aResult = $this->runPreparedQuery(
-			'SELECT `id` FROM `' . $strTableName . '` WHERE `name` LIKE ?',
-			[$strName]
-		);
+		$q = 'SELECT `id` FROM `' . $strTableName . '` WHERE `name` LIKE ?';
+		$aParams = [$strNameAbbr];
+		if ('topic' !== $strType) {
+			$q .= ' OR `abbr` LIKE ?';
+			$aParams[] = $strNameAbbr;
+		}
+		$aResult = $this->runPreparedQuery($q, $aParams);
 		$iId = $aResult[0]['id'];
 
 		// Validate result
 		if (!is_numeric($iId))
-			throw new Exception('Invalid ' . $strType . ' "' .  $strName . '" given.');
+			throw new Exception('Invalid ' . $strType . ' "' .  $strNameAbbr . '" given.');
 
 		return $iId;
 	}
