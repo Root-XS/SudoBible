@@ -1,4 +1,4 @@
-# sudo-bible
+# SudoBible
 Open source Bible API.
 
 ## Installation & Setup
