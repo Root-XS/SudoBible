@@ -3,13 +3,12 @@ Open source Bible API.
 
 ## Installation & Setup
 
-...
-
-Instantiate Sudo Bible with your database credentials, and optional translation
-preference (default translation is the [World English Bible](http://ebible.org/)):
+Instantiate SudoBible with your database credentials, and optional translation
+preference (default translation is the [World English Bible](http://ebible.org/),
+a modern, public-domain, English translation):
 
 ```php
-$oBible = new SudoBible([
+$oBible = new RootXS\SudoBible([
 	'db_host' => 'localhost',
 	'db_user' => 'my_user',
 	'db_pass' => 'my_super_secure_password',
@@ -37,18 +36,18 @@ Find the sub-directory for your database type (e.g., `mysql`) and first run the
 
 Get a single verse:
 ```php
-$oBible->verse('John', 3, 16);
+$aVerse = $oBible->verse('John', 3, 16);
 ```
 
 Get an entire chapter:
 ```php
-$oBible->chapter('John', 3);
+$aChapter = $oBible->chapter('John', 3);
 ```
 
 Get a passage (supply beginning & end verses):
 ```php
-$oBible->ref('John', 3, 16, 17); // John 3:16-17
-$oBible->ref('Hebrews', 5, 11, 6, 2); // Hebrews 5:11-6:2
+$aPassage = $oBible->ref('John', 3, 16, 17); // John 3:16-17
+$aPassage = $oBible->ref('Hebrews', 5, 11, 6, 2); // Hebrews 5:11-6:2
 ```
 
 ###Return values

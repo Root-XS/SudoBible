@@ -149,7 +149,8 @@ class SudoBible {
 	 */
 	public function verse($mBook, $iChapter, $iVerse)
 	{
-		return $this->ref($mBook, $iChapter, $iVerse);
+		$aVerses = $this->ref($mBook, $iChapter, $iVerse);
+		return $aVerses[0];
 	}
 
 	/**
@@ -208,6 +209,7 @@ class SudoBible {
 		// Validate input
 		if ($iEnd3) {
 			// Multiple verses, ending spills into the next book
+			// @todo Is this necessary? Spanning books might be overkill!
 			if ($mEnd1 > $mBook)
 				throw new Exception('2nd book given comes before 1st.');
 		} elseif ($iEnd2) {
