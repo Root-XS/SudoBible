@@ -1,9 +1,9 @@
 {
-	"name": "rootxs/sudo-bible",
+	"name": "rootxs/sudobible",
 	"type": "library",
 	"description": "Open source Bible API.",
 	"keywords": ["bible","scripture","verse","topic","api"],
-	"homepage": "https://github.com/root-xs/sudo-bible",
+	"homepage": "https://github.com/Root-XS/SudoBible",
 	"license": "MIT",
 	"authors": [
 		{
