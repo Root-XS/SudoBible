@@ -2,7 +2,7 @@
 
 namespace RootXS;
 
-use Exception;
+use Exception, mysqli;
 
 class SudoBible {
 
@@ -49,7 +49,7 @@ class SudoBible {
 	 */
 	public function __construct(array $aOptions)
 	{
-		$this->dbConnect($Options);
+		$this->dbConnect($aOptions);
 		if (isset($aOptions['translation']))
 			$this->setTranslation($aOptions['translation']);
 	}
@@ -60,9 +60,9 @@ class SudoBible {
 	 * @param array $aOptions
 	 * @throws Exception
 	 */
-	protected dbConnect(array $aOptions)
+	protected function dbConnect(array $aOptions)
 	{
-		$aOptions = array_merge(Bible::DB_CREDS, $aOptions);
+		$aOptions = array_merge(SudoBible::DB_CREDS, $aOptions);
 		$this->db = new mysqli(
 			$aOptions['db_host'],
 			$aOptions['db_user'],
@@ -127,7 +127,7 @@ class SudoBible {
 
 			// Only run SQL files (eliminates ., .., and subdirs)
 			// Using in_array() in case DBs other than SQL are supported in the future.
-			if (in_array(substr($strFilename, -4), ['.sql']) {
+			if (in_array(substr($strFilename, -4), ['.sql'])) {
 				$mResult = $this->db->query(file_get_contents($strPath . '/' . $strFilename));
 
 				// Check success if creating or dropping
@@ -182,7 +182,7 @@ class SudoBible {
 				. ' AND verses.`chapter` = tv.`chapter` AND verses.`verse` = tv.`verse`'
 			. ' LEFT JOIN `sudo_bible_books` AS books ON books.`id` = tv.`book_id`'
 			. ' WHERE verses.`translation_id` = ? AND tv.`topic_id` = ?'
-			. ' ORDER BY `book_id`, `chapter_id`, `verse_id`';
+			. ' ORDER BY `book_id`, `chapter`, `verse`';
 		return $this->runPreparedQuery($q, [$this->iTranslation, $mTopic]);
 	}
 
@@ -210,15 +210,15 @@ class SudoBible {
 		if ($iEnd3) {
 			// Multiple verses, ending spills into the next book
 			// @todo Is this necessary? Spanning books might be overkill!
-			if ($mEnd1 > $mBook)
+			if ($mEnd1 < $mBook)
 				throw new Exception('2nd book given comes before 1st.');
 		} elseif ($iEnd2) {
 			// Multiple verses, ending spills into the next chapter
-			if ($mEnd1 > $iChapter)
+			if ($mEnd1 < $iChapter)
 				throw new Exception('2nd chapter given comes before 1st.');
 		} elseif ($mEnd1) {
 			// Multiple verses
-			if ($mEnd1 > $iVerse)
+			if ($mEnd1 < $iVerse)
 				throw new Exception('2nd verse given comes before 1st.');
 
 			// Must give a starting verse
@@ -238,7 +238,7 @@ class SudoBible {
 			$q .= ' AND (';
 
 			// End of the starting book
-			$q .= ' (`book_id` = ? AND ((`chapter_id` = ? AND `verse` >= ?) OR `chapter_id` > ?))';
+			$q .= ' (`book_id` = ? AND ((`chapter` = ? AND `verse` >= ?) OR `chapter` > ?))';
 			$aParams = array_merge($aParams, [$mBook, $iChapter, $iVerse, $iChapter]);
 
 			// Any books in between
@@ -246,7 +246,7 @@ class SudoBible {
 			$aParams = array_merge($aParams, [$mBook, $mEnd1]);
 
 			// Beginning of the finishing book
-			$q .= ' OR (`book_id` = ? AND (`chapter_id` < ? OR (`chapter_id` = ? AND `verse` <= ?)))';
+			$q .= ' OR (`book_id` = ? AND (`chapter` < ? OR (`chapter` = ? AND `verse` <= ?)))';
 			$aParams = array_merge($aParams, [$mEnd1, $iEnd2, $iEnd2, $iEnd3]);
 
 			$q .= ' )';
@@ -262,16 +262,16 @@ class SudoBible {
 			$q .= ' AND (';
 
 			// End of the starting chapter
-			$q .= ' (`chapter_id` = ? AND `verse` >= ?)';
+			$q .= ' (`chapter` = ? AND `verse` >= ?)';
 			$aParams = array_merge($aParams, [$iChapter, $iVerse]);
 
 			// Any chapters in between
-			$q .= ' OR (`chapter_id` > ? AND `chapter_id` < ?)';
+			$q .= ' OR (`chapter` > ? AND `chapter` < ?)';
 			$aParams = array_merge($aParams, [$iChapter, $mEnd1]);
 
 			// Beginning of the finishing chapter
-			$q .= ' OR (`chapter_id` = ? AND `verse` <= ?)';
-			$aParams = array_merge($aParams, [$mEnd1, $iEnd2])
+			$q .= ' OR (`chapter` = ? AND `verse` <= ?)';
+			$aParams = array_merge($aParams, [$mEnd1, $iEnd2]);
 
 			$q .= ')';
 
@@ -287,12 +287,12 @@ class SudoBible {
 			$aParams = array_merge($aParams, [$iVerse, $mEnd1]);
 
 		// A single verse
-		} else {
+		} elseif (!$mEnd1 && $iVerse) {
 			$q .= ' AND `verse` = ?';
 			$aParams[] = $iVerse;
 		}
 
-		$q .= ' ORDER BY `book_id`, `chapter_id`, `verse_id`';
+		$q .= ' ORDER BY `book_id`, `chapter`, `verse`';
 
 		return $this->runPreparedQuery($q, $aParams);
 	}
@@ -323,7 +323,7 @@ class SudoBible {
 			$aParams[] = $strNameAbbr;
 		}
 		$aResult = $this->runPreparedQuery($q, $aParams);
-		$iId = $aResult[0]['id'];
+		$iId = $aResult[0]->id;
 
 		// Validate result
 		if (!is_numeric($iId))
@@ -341,22 +341,27 @@ class SudoBible {
 	 */
 	protected function runPreparedQuery($strSql, array $aParams = [])
 	{
+		// call_user_func_array needs references, not values
+		$aRefParams = [];
+		foreach ($aParams as $k =>$v)
+			$aRefParams[$k] = &$aParams[$k];
+
 		// Build data type string for bind_param
 		$strDataTypes = '';
-		foreach ($aParams as $mValue)
+		foreach ($aRefParams as $mValue)
 			$strDataTypes .= is_int($mValue) ? 'i' : 's';
-		array_unshift($aParams, $strDataTypes);
+		array_unshift($aRefParams, $strDataTypes);
 
 		// Prepare & execute
 		$stmt = $this->db->prepare($strSql);
-		call_user_func_array(array($stmt, 'bind_param'), $aParams);
+		call_user_func_array(array($stmt, 'bind_param'), $aRefParams);
 		$stmt->execute();
 		$oResult = $stmt->get_result();
 
 		// Build return array
 		$aReturn = [];
 		$i = 0;
-		while ($oRow = $result->fetch_object())
+		while ($oRow = $oResult->fetch_object())
 			$aReturn[] = $oRow;
 		$stmt->close();
 
