@@ -18,6 +18,5 @@
 		"psr-4" : {
 			"RootXS\\" : "src"
 		}
-	},
-	"minimum-stability": "dev"
+	}
 }
