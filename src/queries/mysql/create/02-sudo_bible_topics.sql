@@ -1,5 +1,7 @@
 CREATE TABLE IF NOT EXISTS `sudo_bible_topics` (
 	`id` SMALLINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
 	`name` VARCHAR(16),
-	UNIQUE KEY (`name`)
+	`alias_id` SMALLINT UNSIGNED,
+	UNIQUE KEY (`name`),
+	KEY (`alias_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;

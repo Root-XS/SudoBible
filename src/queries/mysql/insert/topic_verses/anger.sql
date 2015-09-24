@@ -1,0 +1,17 @@
+INSERT IGNORE INTO `sudo_bible_topic_verses` (`topic_id`, `book_id`, `chapter`, `verse`, `end_verse`) VALUES
+(3, 19, 37, 8, 9),
+(3, 19, 103, 8, null),
+(3, 20, 14, 29, null),
+(3, 20, 15, 1, null),
+(3, 20, 15, 18, null),
+(3, 20, 16, 32, null),
+(3, 20, 19, 11, null),
+(3, 20, 22, 24, null),
+(3, 20, 29, 11, null),
+(3, 21, 7, 9, null),
+(3, 40, 5, 22, null),
+(3, 49, 4, 26, 27),
+(3, 49, 4, 31, null),
+(3, 51, 3, 8, null),
+(3, 59, 1, 19, 20),
+(3, 59, 4, 1, 2);
