@@ -169,13 +169,16 @@ class SudoBible {
 	 * Return all verses on a single topic.
 	 *
 	 * @param int|string $mTopic The topic ID or name.
-	 * @return array
+	 * @param bool $bRandom Pick a random passage?
+	 * @return array|stdClass
 	 */
-	public function topic($mTopic)
+	public function topic($mTopic, $bRandom = false)
 	{
+		// Sanitize input
 		if (is_string($mTopic))
 			$mTopic = $this->getIdFor('topic', $mTopic);
 
+		// Search
 		$q = 'SELECT tv.*, verses.`text`, books.`name` AS book_name, books.`abbr` AS book_abbr, books.`ot`, books.`nt`'
 			. ' FROM `sudo_bible_topic_verses` AS tv'
 			. ' LEFT JOIN `sudo_bible_verses` AS verses ON verses.`book_id` = tv.`book_id`'
@@ -183,7 +186,13 @@ class SudoBible {
 			. ' LEFT JOIN `sudo_bible_books` AS books ON books.`id` = tv.`book_id`'
 			. ' WHERE verses.`translation_id` = ? AND tv.`topic_id` = ?'
 			. ' ORDER BY `book_id`, `chapter`, `verse`';
-		return $this->runPreparedQuery($q, [$this->iTranslation, $mTopic]);
+		$mResult = $this->runPreparedQuery($q, [$this->iTranslation, $mTopic]);
+
+		// If a random passage was requested, pick one
+		if ($bRandom)
+			$mResult = $mResult[array_rand($mResult)];
+
+		return $mResult;
 	}
 
 	/**
