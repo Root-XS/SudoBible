@@ -2,6 +2,8 @@
 
 namespace RootXS;
 
+require_once 'SudoBiblePassage.php';
+
 use Exception, mysqli;
 
 class SudoBible {
@@ -63,15 +65,18 @@ class SudoBible {
 	protected function dbConnect(array $aOptions)
 	{
 		$aOptions = array_merge(SudoBible::DB_CREDS, $aOptions);
-		$this->db = new mysqli(
-			$aOptions['db_host'],
-			$aOptions['db_user'],
-			$aOptions['db_pass'],
-			$aOptions['db_name'],
-			$aOptions['db_port']
-		);
-		if ($this->db->connect_errno)
-			throw new Exception('DB connectin failed - ' . $mysqli->connect_error);
+		try {
+			$this->db = new mysqli(
+				$aOptions['db_host'],
+				$aOptions['db_user'],
+				$aOptions['db_pass'],
+				$aOptions['db_name'],
+				$aOptions['db_port']
+			);
+		} catch (Exception $e) {
+			// Clean up the error message
+			throw new Exception(__METHOD__ . ': DB connection failed.');
+		}
 	}
 
 	/**
@@ -145,12 +150,11 @@ class SudoBible {
 	 * @param int|string $mBook Name or ID of the book.
 	 * @param int $iChapter Chapter number.
 	 * @param int $iVerse Verse number.
-	 * @return array
+	 * @return SudoBiblePassage
 	 */
 	public function verse($mBook, $iChapter, $iVerse)
 	{
-		$aVerses = $this->ref($mBook, $iChapter, $iVerse);
-		return $aVerses[0];
+		return $this->ref($mBook, $iChapter, $iVerse);
 	}
 
 	/**
@@ -158,41 +162,11 @@ class SudoBible {
 	 *
 	 * @param int|string $mBook Name or ID of the book.
 	 * @param int $iChapter Chapter number.
-	 * @return array
+	 * @return SudoBiblePassage
 	 */
 	public function chapter($mBook, $iChapter)
 	{
-		return $this->ref($mBook, $iChapter);
-	}
-
-	/**
-	 * Return all verses on a single topic.
-	 *
-	 * @param int|string $mTopic The topic ID or name.
-	 * @param bool $bRandom Pick a random passage?
-	 * @return array|stdClass
-	 */
-	public function topic($mTopic, $bRandom = false)
-	{
-		// Sanitize input
-		if (is_string($mTopic))
-			$mTopic = $this->getIdFor('topic', $mTopic);
-
-		// Search
-		$q = 'SELECT tv.*, verses.`text`, books.`name` AS book_name, books.`abbr` AS book_abbr, books.`ot`, books.`nt`'
-			. ' FROM `sudo_bible_topic_verses` AS tv'
-			. ' LEFT JOIN `sudo_bible_verses` AS verses ON verses.`book_id` = tv.`book_id`'
-				. ' AND verses.`chapter` = tv.`chapter` AND verses.`verse` = tv.`verse`'
-			. ' LEFT JOIN `sudo_bible_books` AS books ON books.`id` = tv.`book_id`'
-			. ' WHERE verses.`translation_id` = ? AND tv.`topic_id` = ?'
-			. ' ORDER BY `book_id`, `chapter`, `verse`';
-		$mResult = $this->runPreparedQuery($q, [$this->iTranslation, $mTopic]);
-
-		// If a random passage was requested, pick one
-		if ($bRandom)
-			$mResult = $mResult[array_rand($mResult)];
-
-		return $mResult;
+		return $this->ref($mBook, $iChapter)->setFullChapter();
 	}
 
 	/**
@@ -205,14 +179,15 @@ class SudoBible {
 	 * @param int $iEnd2 Ending verse or chapter.
 	 * @param int $iEnd3 Ending verse.
 	 * @throws Exception
-	 * @return array
+	 * @return array|false
 	 */
 	public function ref($mBook, $iChapter, $iVerse = null, $mEnd1 = null, $iEnd2 = null, $iEnd3 = null)
 	{
 		// Sanitize input
-		if (is_string($mBook))
+		$strBook = is_numeric($mBook) ? 'Book #' . $mBook : $mBook; // save for later error message
+		if (!is_numeric($mBook))
 			$mBook = $this->getIdFor('book', $mBook);
-		if (is_string($mEnd1))
+		if ($mEnd1 && !is_numeric($mEnd1))
 			$mEnd1 = $this->getIdFor('book', $mEnd1);
 
 		// Validate input
@@ -303,7 +278,66 @@ class SudoBible {
 
 		$q .= ' ORDER BY `book_id`, `chapter`, `verse`';
 
-		return $this->runPreparedQuery($q, $aParams);
+		return new SudoBiblePassage($this->runPreparedQuery($q, $aParams), $this);
+	}
+
+	/**
+	 * Return all verses on a single topic.
+	 *
+	 * @param int|string $mTopic The topic ID or name.
+	 * @param bool $bRandomOne Pick a random passage?
+	 * @return array|stdClass
+	 */
+	public function topic($mTopic, $bRandomOne = false)
+	{
+		// Sanitize input
+		if (is_string($mTopic))
+			$mTopic = $this->getIdFor('topic', $mTopic);
+
+		// Search
+		$q = 'SELECT tv.*, verses.`text`, books.`name` AS book_name, books.`abbr` AS book_abbr, books.`ot`, books.`nt`'
+			. ' FROM `sudo_bible_topic_verses` AS tv'
+			. ' LEFT JOIN `sudo_bible_verses` AS verses ON verses.`book_id` = tv.`book_id`'
+				. ' AND verses.`chapter` = tv.`chapter` AND verses.`verse` = tv.`verse`'
+			. ' LEFT JOIN `sudo_bible_books` AS books ON books.`id` = tv.`book_id`'
+			. ' WHERE verses.`translation_id` = ? AND tv.`topic_id` = ?'
+			. ' ORDER BY `book_id`, `chapter`, `verse`';
+		$mResult = $this->runPreparedQuery($q, [$this->iTranslation, $mTopic]);
+
+		// If a random passage was requested, pick one
+		if ($bRandomOne)
+			$mResult = $mResult[array_rand($mResult)];
+
+		return $mResult;
+	}
+
+	/**
+	 * Get the verse following the given reference.
+	 *
+	 * @param int|string $mBook
+	 * @param int $iChapter
+	 * @param int $iVerse
+	 * @return SudoBiblePassage
+	 */
+	public function nextVerse($mBook, $iChapter, $iVerse)
+	{
+		$oPassage = new SudoBiblePassage([], $this);
+		$iBookId = is_numeric($mBook) ? $mBook : getIdFor('book', $mBook);
+
+		// Steps to try
+		$aSteps = [
+			[$iBookId, $iChapter, $iVerse + 1], // next verse in chapter
+			[$iBookId, $iChapter + 1, 1], // beginning of next chapter in book
+			[$iBookId + 1, 1, 1], // beginning of next book
+		];
+		foreach ($aSteps as $aStep) {
+			if ($oPassage->isEmpty())
+				$oPassage = call_user_func_array([$this, 'verse'], $aStep);
+			else
+				break;
+		}
+
+		return $oPassage;
 	}
 
 	/**
