@@ -286,7 +286,7 @@ class SudoBible {
 	 *
 	 * @param int|string $mTopic The topic ID or name.
 	 * @param bool $bRandomOne Pick a random passage?
-	 * @return array|stdClass
+	 * @return array|SudoBiblePassage
 	 */
 	public function topic($mTopic, $bRandomOne = false)
 	{
@@ -305,8 +305,13 @@ class SudoBible {
 		$mResult = $this->runPreparedQuery($q, [$this->iTranslation, $mTopic]);
 
 		// If a random passage was requested, pick one
-		if ($bRandomOne)
-			$mResult = $mResult[array_rand($mResult)];
+		if ($bRandomOne) {
+			$mResult = new SudoBiblePassage([$mResult[array_rand($mResult)]], $this);
+		// Otherwise, convert all from stdClass to SudoBiblePassage
+		} else {
+			foreach ($mResult as $k => $oResult)
+				$mResult[$k] = new SudoBiblePassage([$oResult], $this);
+		}
 
 		return $mResult;
 	}
