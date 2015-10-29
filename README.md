@@ -8,7 +8,7 @@ preference (default translation is the [World English Bible](http://ebible.org/)
 a modern, public-domain, English translation):
 
 ```php
-$oBible = new RootXS\SudoBible([
+$oBible = new \RootXS\SudoBible([
 	'db_host' => 'localhost',
 	'db_user' => 'my_user',
 	'db_pass' => 'my_super_secure_password',
@@ -17,8 +17,8 @@ $oBible = new RootXS\SudoBible([
 ]);
 ```
 
-Call the following method once when first setting up, then delete it once your
-tables have been created:
+Call the following method once when first setting up, then delete this code
+once your tables have been created:
 
 ```php
 $oBible->install();
@@ -36,30 +36,66 @@ Find the sub-directory for your database type (e.g., `mysql`) and first run the
 
 Get a single verse:
 ```php
-$aVerse = $oBible->verse('John', 3, 16);
+$oPassage = $oBible->verse('John', 3, 16);
 ```
 
 Get an entire chapter:
 ```php
-$aChapter = $oBible->chapter('John', 3);
+$oPassage = $oBible->chapter('John', 3);
 ```
 
 Get a passage (supply beginning & end verses):
 ```php
-$aPassage = $oBible->ref('John', 3, 16, 17); // John 3:16-17
-$aPassage = $oBible->ref('Hebrews', 5, 11, 6, 2); // Hebrews 5:11-6:2
+$oPassage = $oBible->ref('John', 3, 16, 17); // John 3:16-17
+$oPassage = $oBible->ref('Hebrews', 5, 11, 6, 2); // Hebrews 5:11-6:2
 ```
 
-###Return values
-`verse()` returns a single verse, while `chapter()` and `passage()` each return
-an array of verses. The structure of a verse is as follows:
+## The SudoBiblePassage Object
+`verse()`, `chapter()`, and `ref()` each return a `SudoBiblePassage` object
+which contains the requested passage and provides utilities for manipulating it.
+
+### Printing the passage
+The `SudoBiblePassage` object employs the `__toString()` magic method, allowing
+you to simply `echo` or `print` the object.
 ```php
-[
-	'book_name' => 'Revelation',
-	'book_abbr' => 'Rev',
-	'chapter' => 4,
-	'verse' => 8,
-]
+echo $oBible->verse('John', 3, 16);
+```
+*Output:*
+> For God so loved the world, that he gave his one and only Son, that whoever
+> believes in him should not perish, but have eternal life. (John 3:16)
+
+### Styling the passage
+
+The `SudoBiblePassage` object provides a few methods for styling the string output.
+```php
+$oPassage = $oBible->ref('John', 3, 16, 17)
+	->numberVerses() // adds verse numbers to the passage string
+	->useHTML(); // adds some HTML styling to the passage string
+echo $oPassage;
+```
+*Output:*
+> <sup>16</sup> For God so loved the world, that he gave his one and only Son,
+> that whoever believes in him should not perish, but have eternal life.
+> <sup>17</sup> For God didn't send his Son into the world to judge the world,
+> but that the world should be saved through him. <i>(John 3:16-17)</i>
+
+All of the styling methods accept a boolean parameter, so you can switch
+the styling off if it was previously turned on:
+```php
+$oPassage->numberVerses(false);
+```
+The boolean flag defaults to `true`, so if you just want to turn the feature "on,"
+no parameter is necessary.
+
+### Navigating the passage
+
+The `SudoBiblePassage` object also provides a mechanism for proceding beyond the chosen passage:
+```php
+$oPassage = $oBible->verse('John', 3, 16);
+for ($i=0; $i<2; $i++) {
+	echo $oPassage;
+	$oPassage = $oPassage->nextVerse();
+}
 ```
 
 ## Deleting or refreshing the database
