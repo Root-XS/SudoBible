@@ -50,6 +50,12 @@ $oPassage = $oBible->ref('John', 3, 16, 17); // John 3:16-17
 $oPassage = $oBible->ref('Hebrews', 5, 11, 6, 2); // Hebrews 5:11-6:2
 ```
 
+Get one or more verses based on a topic:
+```php
+$aPassages = $oBible->topic('church'); // returns an array of all related passages
+$oPassage = $oBible->topic('church', true); // returns a single, random related passage
+```
+
 ## The SudoBiblePassage Object
 `verse()`, `chapter()`, and `ref()` each return a `SudoBiblePassage` object
 which contains the requested passage and provides utilities for manipulating it.
